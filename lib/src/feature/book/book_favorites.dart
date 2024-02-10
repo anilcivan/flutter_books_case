@@ -1,20 +1,20 @@
-import 'package:book_project/src/feature/book/book_favorites.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:book_project/src/feature/book/book_detail_view.dart';
 import 'package:book_project/src/feature/book/book_model.dart';
+import 'package:localstorage/localstorage.dart';
 
-class BookView extends StatefulWidget {
-  const BookView({Key? key}) : super(key: key);
+class FavoritesView extends StatefulWidget {
+  const FavoritesView({Key? key}) : super(key: key);
 
   @override
-  State<BookView> createState() => _BookViewState();
+  State<FavoritesView> createState() => _FavoritesViewState();
 }
 
-class _BookViewState extends State<BookView> {
+class _FavoritesViewState extends State<FavoritesView> {
+  final LocalStorage storage = new LocalStorage('books');
   BookModel? bookModel;
-  TextEditingController _searchController =
-      TextEditingController(text: "google");
+
   int _page = 1;
   int _totalPage = 0;
 
@@ -22,7 +22,7 @@ class _BookViewState extends State<BookView> {
   void initState() {
     super.initState();
     // Varsayılan arama sorgusu ile kitapları getir
-    getBook(_searchController.text);
+    getBook();
   }
 
   Future<void> onChanged(String value) async {
@@ -31,11 +31,13 @@ class _BookViewState extends State<BookView> {
       _page = 1;
       _totalPage = 0;
     });
-    getBook(value);
+    getBook();
   }
 
-  Future<void> getBook(String query) async {
+  Future<void> getBook() async {
     try {
+      List favorites = storage.getItem("favorites") ?? [];
+      String query = favorites.join(",");
       final response = await Dio()
           .get("https://api.itbook.store/1.0/search/$query?page=$_page");
 
@@ -68,7 +70,7 @@ class _BookViewState extends State<BookView> {
         _page += 1;
       }
     });
-    getBook(_searchController.text);
+    getBook();
   }
 
   void _getPreviousPage() {
@@ -77,7 +79,7 @@ class _BookViewState extends State<BookView> {
         _page -= 1;
       }
     });
-    getBook(_searchController.text);
+    getBook();
   }
 
   @override
@@ -86,35 +88,8 @@ class _BookViewState extends State<BookView> {
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(kToolbarHeight + 20),
         child: AppBar(
-          backgroundColor: Colors.purple,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search...',
-                    hintStyle: TextStyle(color: Colors.white),
-                  ),
-                  style: TextStyle(color: Colors.white),
-                  onChanged: onChanged,
-                ),
-              ),
-              InkWell(
-                onTap: () => {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FavoritesView(),
-                    ),
-                  )
-                },
-                child: Icon(Icons.favorite_outline),
-              ),
-            ],
-          ),
-        ),
+            backgroundColor: Colors.purple,
+            title: Text("Favorilerim")),
       ),
       body: bookModel == null
           ? Center(
