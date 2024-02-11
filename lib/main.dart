@@ -1,12 +1,12 @@
-import 'package:book_project/src/feature/book/book_favorites.dart';
 import 'package:book_project/src/feature/book/book_view.dart';
 import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 
 void main() {
-  new LocalStorage('books');
+  LocalStorage('books');
   runApp(const MyApp());
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -22,6 +22,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const BookView(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

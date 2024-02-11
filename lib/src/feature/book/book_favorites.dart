@@ -12,7 +12,7 @@ class FavoritesView extends StatefulWidget {
 }
 
 class _FavoritesViewState extends State<FavoritesView> {
-  final LocalStorage storage = new LocalStorage('books');
+  final LocalStorage storage = LocalStorage('books');
   BookModel? bookModel;
 
   int _page = 1;
@@ -21,12 +21,10 @@ class _FavoritesViewState extends State<FavoritesView> {
   @override
   void initState() {
     super.initState();
-    // Varsayılan arama sorgusu ile kitapları getir
     getBook();
   }
 
   Future<void> onChanged(String value) async {
-    // Yeni arama sorgusu ile kitapları getir
     setState(() {
       _page = 1;
       _totalPage = 0;
@@ -40,27 +38,21 @@ class _FavoritesViewState extends State<FavoritesView> {
       String query = favorites.join(",");
       final response = await Dio()
           .get("https://api.itbook.store/1.0/search/$query?page=$_page");
-
-      print("https://api.itbook.store/1.0/search/$query?page=$_page");
-
       if (response.statusCode == 200) {
         setState(() {
-          // Başarılı yanıtı alınca kitap modelini güncelle
           bookModel = BookModel.fromJson(response.data);
           _totalPage = (int.parse(bookModel?.total ?? "0") / 10).ceil();
         });
       } else {
-        // Başarısız yanıt durumunda kitap modelini null yap
         setState(() {
           bookModel = null;
         });
       }
     } catch (e) {
-      // Hata durumunda kitap modelini null yap
       setState(() {
         bookModel = null;
       });
-      print("Ağ hatası: $e");
+      debugPrint("Ağ hatası: $e");
     }
   }
 
@@ -86,69 +78,79 @@ class _FavoritesViewState extends State<FavoritesView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(kToolbarHeight + 20),
+        preferredSize: const Size.fromHeight(kToolbarHeight + 10),
         child: AppBar(
-            backgroundColor: Colors.purple,
-            title: Text("Favorilerim")),
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          title: const Text(
+            "Favorilerim",
+            style: TextStyle(
+              color: Colors.white,              
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
       ),
-      body: bookModel == null
-          ? Center(
-              child: CircularProgressIndicator(),
-            )
-          : ListView.separated(
-              itemCount: bookModel!.books.length + 1,
-              itemBuilder: (context, index) {
-                if (index == bookModel!.books.length) {
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        ElevatedButton(
-                          onPressed: _getPreviousPage,
-                          child: Text("Previous"),
-                        ),
-                        Text(_page.toString() + "/" + _totalPage.toString()),
-                        ElevatedButton(
-                          onPressed: _getNextPage,
-                          child: Text("Next"),
-                        ),
-                      ],
-                    ),
-                  );
-                } else {
-                  final book = bookModel!.books[index];
-                  return InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              BookDetail(id: book?.isbn13 ?? ""),
+      body: Column(
+        children: [
+          Expanded(
+            child: bookModel == null
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : ListView.separated(
+                    itemCount: bookModel!.books.length,
+                    itemBuilder: (context, index) {
+                      final book = bookModel!.books[index];
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BookDetail(id: book.isbn13),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  book.title,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right),
+                            ],
+                          ),
                         ),
                       );
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              book.title ?? "",
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-              },
-              separatorBuilder: (BuildContext context, int index) =>
-                  const Divider(),
+                    separatorBuilder: (BuildContext context, int index) =>
+                        const Divider(),
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton(
+                  onPressed: _getPreviousPage,
+                  child: const Text("Previous"),
+                ),
+                Text("${_page.toString()} / ${_totalPage.toString()}"),
+                ElevatedButton(
+                  onPressed: _getNextPage,
+                  child: const Text("Next"),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }

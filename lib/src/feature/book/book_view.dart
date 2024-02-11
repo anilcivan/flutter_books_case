@@ -13,7 +13,7 @@ class BookView extends StatefulWidget {
 
 class _BookViewState extends State<BookView> {
   BookModel? bookModel;
-  TextEditingController _searchController =
+  final TextEditingController _searchController =
       TextEditingController(text: "google");
   int _page = 1;
   int _totalPage = 0;
@@ -21,12 +21,10 @@ class _BookViewState extends State<BookView> {
   @override
   void initState() {
     super.initState();
-    // Varsayılan arama sorgusu ile kitapları getir
     getBook(_searchController.text);
   }
 
   Future<void> onChanged(String value) async {
-    // Yeni arama sorgusu ile kitapları getir
     setState(() {
       _page = 1;
       _totalPage = 0;
@@ -38,27 +36,21 @@ class _BookViewState extends State<BookView> {
     try {
       final response = await Dio()
           .get("https://api.itbook.store/1.0/search/$query?page=$_page");
-
-      print("https://api.itbook.store/1.0/search/$query?page=$_page");
-
       if (response.statusCode == 200) {
         setState(() {
-          // Başarılı yanıtı alınca kitap modelini güncelle
           bookModel = BookModel.fromJson(response.data);
           _totalPage = (int.parse(bookModel?.total ?? "0") / 10).ceil();
         });
       } else {
-        // Başarısız yanıt durumunda kitap modelini null yap
         setState(() {
           bookModel = null;
         });
       }
     } catch (e) {
-      // Hata durumunda kitap modelini null yap
       setState(() {
         bookModel = null;
       });
-      print("Ağ hatası: $e");
+      debugPrint("Ağ hatası: $e");
     }
   }
 
@@ -80,100 +72,129 @@ class _BookViewState extends State<BookView> {
     getBook(_searchController.text);
   }
 
+  void _onSearchButtonPressed() {
+    getBook(_searchController.text);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(kToolbarHeight + 20),
+        preferredSize: const Size.fromHeight(kToolbarHeight + 10),
         child: AppBar(
           backgroundColor: Colors.purple,
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            
             children: [
               Expanded(
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search...',
-                    hintStyle: TextStyle(color: Colors.white),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    suffixIcon: IconButton(
+                      onPressed: _onSearchButtonPressed,
+                      icon: const Icon(Icons.search),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                   ),
-                  style: TextStyle(color: Colors.white),
-                  onChanged: onChanged,
+                  style: const TextStyle(
+                    color: Colors.black,
+                  
+                    fontSize: 14,
+                  ),
                 ),
               ),
-              InkWell(
-                onTap: () => {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FavoritesView(),
-                    ),
-                  )
-                },
-                child: Icon(Icons.favorite_outline),
-              ),
+              SizedBox(width: 16),
+              ElevatedButton(
+                  style: ButtonStyle(
+                    elevation: MaterialStateProperty.all<double>(0),
+                    padding: MaterialStateProperty.all<EdgeInsetsGeometry>(
+                        EdgeInsets.zero), // Boşluğu kaldırır
+                    foregroundColor: MaterialStateProperty.all(Colors.white),
+                    backgroundColor: MaterialStateProperty.all<Color>(
+                        Colors.purple), // Arkaplanı saydam yapar
+                    // Diğer stil özellikleri buraya eklenebilir
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FavoritesView(),
+                      ),
+                    );
+                  },
+                  child: Column(
+                      children: [Icon(Icons.favorite), Text("Favorites")])),
             ],
           ),
         ),
       ),
-      body: bookModel == null
-          ? Center(
-              child: CircularProgressIndicator(),
-            )
-          : ListView.separated(
-              itemCount: bookModel!.books.length + 1,
-              itemBuilder: (context, index) {
-                if (index == bookModel!.books.length) {
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        ElevatedButton(
-                          onPressed: _getPreviousPage,
-                          child: Text("Previous"),
-                        ),
-                        Text(_page.toString() + "/" + _totalPage.toString()),
-                        ElevatedButton(
-                          onPressed: _getNextPage,
-                          child: Text("Next"),
-                        ),
-                      ],
-                    ),
-                  );
-                } else {
-                  final book = bookModel!.books[index];
-                  return InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              BookDetail(id: book?.isbn13 ?? ""),
+      body: Column(
+        children: [
+          Expanded(
+            child: bookModel == null
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : ListView.separated(
+                    itemCount: bookModel!.books.length,
+                    itemBuilder: (context, index) {
+                      final book = bookModel!.books[index];
+                      return InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BookDetail(id: book.isbn13),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  book.title,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right),
+                            ],
+                          ),
                         ),
                       );
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              book.title ?? "",
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-              },
-              separatorBuilder: (BuildContext context, int index) =>
-                  const Divider(),
+                    separatorBuilder: (BuildContext context, int index) =>
+                        const Divider(),
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton(
+                  onPressed: _getPreviousPage,
+                  child: const Text("Previous"),
+                ),
+                Text("${_page.toString()} / ${_totalPage.toString()}"),
+                ElevatedButton(
+                  onPressed: _getNextPage,
+                  child: const Text("Next"),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }
