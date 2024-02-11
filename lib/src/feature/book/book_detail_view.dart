@@ -18,6 +18,7 @@ class _BookDetailState extends State<BookDetail> {
   BookDetailModel? bookDetailModel;
   final LocalStorage storage = LocalStorage('books');
   bool _isFavorite = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -48,6 +49,7 @@ class _BookDetailState extends State<BookDetail> {
 
     setState(() {
       _isFavorite = favorites.contains(widget.id);
+      _isLoading = true;
     });
 
     final response =
@@ -55,7 +57,13 @@ class _BookDetailState extends State<BookDetail> {
 
     if (response.statusCode == 200) {
       setState(() {
+        _isLoading = false;
         bookDetailModel = BookDetailModel.fromJson(response.data);
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+        bookDetailModel = null;
       });
     }
   }
@@ -91,7 +99,11 @@ class _BookDetailState extends State<BookDetail> {
         backgroundColor: Colors.indigoAccent,
         foregroundColor: Colors.white,
       ),
-      body: Padding(
+      body: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

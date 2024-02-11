@@ -14,9 +14,10 @@ class BookView extends StatefulWidget {
 class _BookViewState extends State<BookView> {
   BookModel? bookModel;
   final TextEditingController _searchController =
-      TextEditingController(text: "google");
+      TextEditingController(text: "flutter");
   int _page = 1;
   int _totalPage = 0;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -33,43 +34,49 @@ class _BookViewState extends State<BookView> {
   }
 
   Future<void> getBook(String query) async {
+    setState(() {
+      _isLoading = true;
+    });
     try {
       final response = await Dio()
           .get("https://api.itbook.store/1.0/search/$query?page=$_page");
       if (response.statusCode == 200) {
         setState(() {
+          _isLoading = false;
           bookModel = BookModel.fromJson(response.data);
           _totalPage = (int.parse(bookModel?.total ?? "0") / 10).ceil();
         });
       } else {
         setState(() {
           bookModel = null;
+          _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
         bookModel = null;
+        _isLoading = false;
       });
       debugPrint("Ağ hatası: $e");
     }
   }
 
   void _getNextPage() {
-    setState(() {
-      if (_page < _totalPage) {
+    if (_page < _totalPage) {
+      setState(() {
         _page += 1;
-      }
-    });
-    getBook(_searchController.text);
+      });
+      getBook(_searchController.text);
+    }
   }
 
   void _getPreviousPage() {
-    setState(() {
-      if (_page > 1) {
+    if (_page > 1) {
+      setState(() {
         _page -= 1;
-      }
-    });
-    getBook(_searchController.text);
+      });
+      getBook(_searchController.text);
+    }
   }
 
   void _onSearchButtonPressed() {
@@ -85,7 +92,6 @@ class _BookViewState extends State<BookView> {
           backgroundColor: Colors.purple,
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            
             children: [
               Expanded(
                 child: TextField(
@@ -105,12 +111,11 @@ class _BookViewState extends State<BookView> {
                   ),
                   style: const TextStyle(
                     color: Colors.black,
-                  
                     fontSize: 14,
                   ),
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               ElevatedButton(
                   style: ButtonStyle(
                     elevation: MaterialStateProperty.all<double>(0),
@@ -129,7 +134,7 @@ class _BookViewState extends State<BookView> {
                       ),
                     );
                   },
-                  child: Column(
+                  child: const Column(
                       children: [Icon(Icons.favorite), Text("Favorites")])),
             ],
           ),
@@ -138,7 +143,7 @@ class _BookViewState extends State<BookView> {
       body: Column(
         children: [
           Expanded(
-            child: bookModel == null
+            child: _isLoading
                 ? const Center(
                     child: CircularProgressIndicator(),
                   )
@@ -182,11 +187,19 @@ class _BookViewState extends State<BookView> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 ElevatedButton(
+                  style: ButtonStyle(
+                    fixedSize:
+                        MaterialStateProperty.all<Size>(const Size(128, 30)),
+                  ),
                   onPressed: _getPreviousPage,
                   child: const Text("Previous"),
                 ),
                 Text("${_page.toString()} / ${_totalPage.toString()}"),
                 ElevatedButton(
+                  style: ButtonStyle(
+                    fixedSize:
+                        MaterialStateProperty.all<Size>(const Size(128, 30)),
+                  ),
                   onPressed: _getNextPage,
                   child: const Text("Next"),
                 ),

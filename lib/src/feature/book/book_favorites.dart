@@ -17,6 +17,7 @@ class _FavoritesViewState extends State<FavoritesView> {
 
   int _page = 1;
   int _totalPage = 0;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -24,15 +25,10 @@ class _FavoritesViewState extends State<FavoritesView> {
     getBook();
   }
 
-  Future<void> onChanged(String value) async {
-    setState(() {
-      _page = 1;
-      _totalPage = 0;
-    });
-    getBook();
-  }
-
   Future<void> getBook() async {
+    setState(() {
+      _isLoading = true;
+    });
     try {
       List favorites = storage.getItem("favorites") ?? [];
       String query = favorites.join(",");
@@ -40,16 +36,19 @@ class _FavoritesViewState extends State<FavoritesView> {
           .get("https://api.itbook.store/1.0/search/$query?page=$_page");
       if (response.statusCode == 200) {
         setState(() {
+          _isLoading = false;
           bookModel = BookModel.fromJson(response.data);
           _totalPage = (int.parse(bookModel?.total ?? "0") / 10).ceil();
         });
       } else {
         setState(() {
+          _isLoading = false;
           bookModel = null;
         });
       }
     } catch (e) {
       setState(() {
+        _isLoading = false;
         bookModel = null;
       });
       debugPrint("Ağ hatası: $e");
@@ -57,21 +56,21 @@ class _FavoritesViewState extends State<FavoritesView> {
   }
 
   void _getNextPage() {
-    setState(() {
-      if (_page < _totalPage) {
+    if (_page < _totalPage) {
+      setState(() {
         _page += 1;
-      }
-    });
-    getBook();
+      });
+      getBook();
+    }
   }
 
   void _getPreviousPage() {
-    setState(() {
-      if (_page > 1) {
+    if (_page > 1) {
+      setState(() {
         _page -= 1;
-      }
-    });
-    getBook();
+      });
+      getBook();
+    }
   }
 
   @override
@@ -85,7 +84,7 @@ class _FavoritesViewState extends State<FavoritesView> {
           title: const Text(
             "Favorilerim",
             style: TextStyle(
-              color: Colors.white,              
+              color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -94,7 +93,7 @@ class _FavoritesViewState extends State<FavoritesView> {
       body: Column(
         children: [
           Expanded(
-            child: bookModel == null
+            child: _isLoading
                 ? const Center(
                     child: CircularProgressIndicator(),
                   )
@@ -138,11 +137,19 @@ class _FavoritesViewState extends State<FavoritesView> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 ElevatedButton(
+                  style: ButtonStyle(
+                    fixedSize:
+                        MaterialStateProperty.all<Size>(const Size(128, 30)),
+                  ),
                   onPressed: _getPreviousPage,
                   child: const Text("Previous"),
                 ),
                 Text("${_page.toString()} / ${_totalPage.toString()}"),
                 ElevatedButton(
+                  style: ButtonStyle(
+                    fixedSize:
+                        MaterialStateProperty.all<Size>(const Size(128, 30)),
+                  ),
                   onPressed: _getNextPage,
                   child: const Text("Next"),
                 ),
